@@ -205,7 +205,10 @@
             }
             
             renderProducts(filtered);
-            document.getElementById('result-count').textContent = `Showing ${filtered.length} products`;
+            const resultCountElem = document.getElementById('result-count');
+            if (resultCountElem) {
+                resultCountElem.textContent = `Showing ${filtered.length} products`;
+            }
         }
         
         function resetFilters() {
