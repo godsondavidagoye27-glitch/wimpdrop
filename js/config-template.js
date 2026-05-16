@@ -12,6 +12,7 @@ const CONFIG = {
   
   // ===== CJ DROPSHIPPING CONFIGURATION =====
   cjApiUrl: 'https://developers.cjdropshipping.com/api2.0/v1',
+  cjStoreId: '',
   
   // ===== APP CONFIGURATION =====
   appName: 'Wimp-Drop',

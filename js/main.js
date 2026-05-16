@@ -37,6 +37,7 @@ async function initializeConfig() {
       flutterwaveKey: env.get('VITE_FLUTTERWAVE_PUBLIC_KEY'),
       cjApiKey: env.get('VITE_CJ_API_KEY'),
       cjApiUrl: env.get('VITE_CJ_API_URL', 'https://developers.cjdropshipping.com/api2.0/v1'),
+      cjStoreId: env.get('VITE_CJ_STORE_ID'),
       appName: env.get('VITE_APP_NAME', 'Wimp-Drop'),
       isDevelopment: env.get('VITE_ENVIRONMENT') === 'development',
       debugMode: env.get('VITE_DEBUG_MODE', false)
@@ -315,7 +316,10 @@ async function loadProducts(filters = {}) {
         // Render pagination
         const total = res.count || products.length;
         renderPagination(total, page, perPage);
-        document.getElementById('result-count').textContent = `Showing ${total} products`;
+        const resultCountElem = document.getElementById('result-count');
+        if (resultCountElem) {
+          resultCountElem.textContent = `Showing ${total} products`;
+        }
         return;
       }
     }
@@ -456,96 +460,6 @@ function goToPage(page) {
 }
 
 // ===== AUTHENTICATION ===== 
-
-// Form handlers for login page
-async function handleLoginForm(event) {
-  event.preventDefault();
-  const form = event.target;
-  const email = form.querySelector('[name="email"]').value;
-  const password = form.querySelector('[name="password"]').value;
-  
-  if (!email || !password) {
-    showNotification('Please fill in all fields', 'error');
-    return;
-  }
-  
-  // Use Supabase auth
-  if (typeof supabaseService !== 'undefined' && supabaseService.isInitialized) {
-    const result = await supabaseService.signIn(email, password);
-    if (result.success) {
-      AppState.user = result.user;
-      showNotification('Login successful!', 'success');
-      // Redirect to account page after 1 second
-      setTimeout(() => {
-        window.location.href = 'account.html';
-      }, 1000);
-    } else {
-      showNotification(result.error || 'Login failed', 'error');
-    }
-  } else {
-    showNotification('Authentication service not available', 'error');
-  }
-}
-
-// Form handler for register page
-async function handleRegisterForm(event) {
-  event.preventDefault();
-  const form = event.target;
-  const firstName = form.querySelector('[name="firstName"]').value;
-  const lastName = form.querySelector('[name="lastName"]').value;
-  const email = form.querySelector('[name="email"]').value;
-  const password = form.querySelector('[name="password"]').value;
-  const confirmPassword = form.querySelector('[name="confirmPassword"]').value;
-  const phone = form.querySelector('[name="phone"]')?.value || '';
-  const subscribeNewsletterChecked = form.querySelector('[name="newsletter"]')?.checked;
-  
-  // Validation
-  if (!firstName || !lastName || !email || !password || !confirmPassword) {
-    showNotification('Please fill in all required fields', 'error');
-    return;
-  }
-  
-  if (password !== confirmPassword) {
-    showNotification('Passwords do not match', 'error');
-    return;
-  }
-  
-  if (password.length < 6) {
-    showNotification('Password must be at least 6 characters', 'error');
-    return;
-  }
-  
-  // Use Supabase auth
-  if (typeof supabaseService !== 'undefined' && supabaseService.isInitialized) {
-    const result = await supabaseService.signUp(email, password, {
-      full_name: `${firstName} ${lastName}`,
-      phone: phone
-    });
-    if (result.success) {
-      if (subscribeNewsletterChecked) {
-        await supabaseService.subscribeNewsletter(email).catch(() => {});
-      }
-
-      if (result.user) {
-        AppState.user = result.user;
-        Storage.setUser(AppState.user);
-      }
-
-      const message = result.session ?
-        'Account created successfully! Redirecting to your account...' :
-        'Account created. Please verify your email before signing in.';
-
-      showNotification(message, 'success');
-      setTimeout(() => {
-        window.location.href = result.session ? 'account.html' : 'login.html';
-      }, 1500);
-    } else {
-      showNotification(result.error || 'Registration failed', 'error');
-    }
-  } else {
-    showNotification('Authentication service not available', 'error');
-  }
-}
 
 async function handleLogin(email, password) {
   try {
@@ -856,7 +770,10 @@ async function handleSearch(e) {
 
         AppState.products = products;
         renderProducts(products);
-        document.getElementById('result-count').textContent = `Showing ${res.count || products.length} products`;
+        const resultCountElem = document.getElementById('result-count');
+        if (resultCountElem) {
+          resultCountElem.textContent = `Showing ${res.count || products.length} products`;
+        }
         renderPagination(res.count || products.length, 1, 12);
         return;
       }
@@ -872,7 +789,10 @@ async function handleSearch(e) {
     (p.category || '').toLowerCase().includes(q)
   );
   renderProducts(filtered);
-  document.getElementById('result-count').textContent = `Showing ${filtered.length} products`;
+  const resultCountElem = document.getElementById('result-count');
+  if (resultCountElem) {
+    resultCountElem.textContent = `Showing ${filtered.length} products`;
+  }
 }
 
 // ===== UTILITIES ===== 

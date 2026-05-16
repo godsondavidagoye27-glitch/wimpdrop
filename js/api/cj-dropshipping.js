@@ -5,8 +5,54 @@
 
 class CJDropshippingAPI {
   constructor() {
-    this.baseUrl = 'https://developers.cjdropshipping.com/api2.0/v1';
-    // API key is stored on backend and accessed via Edge Functions
+    this.baseUrl = (typeof env !== 'undefined' ? env.get('VITE_CJ_API_URL') : '') || 'https://developers.cjdropshipping.com/api2.0/v1';
+    this.backendBase = '/api/cj';
+  }
+
+  get storeId() {
+    const envStoreId = (typeof env !== 'undefined' ? env.get('VITE_CJ_STORE_ID') : '') || '';
+    return (envStoreId || window.CJ_STORE_ID || '').toString();
+  }
+
+  buildUrl(path) {
+    const url = new URL(path, window.location.origin);
+    if (this.storeId) {
+      url.searchParams.set('storeId', this.storeId);
+    }
+    return url.toString();
+  }
+
+  buildPayload(payload = {}) {
+    const body = { ...payload };
+    if (this.storeId) {
+      body.storeId = this.storeId;
+      body.store_id = this.storeId;
+    }
+    return body;
+  }
+
+  async request(path, options = {}) {
+    const url = path.startsWith('http') ? path : this.buildUrl(path);
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    const init = {
+      method: options.method || 'GET',
+      headers
+    };
+
+    if (options.body !== undefined && options.body !== null) {
+      init.body = typeof options.body === 'string' ? options.body : JSON.stringify(this.buildPayload(options.body));
+    }
+
+    const response = await fetch(url, init);
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      const message = result?.message || result?.error || result?.error_description || `${response.status} ${response.statusText}`;
+      throw new Error(message);
+    }
+    return result;
   }
 
   // ===== PRODUCT OPERATIONS =====
@@ -19,21 +65,14 @@ class CJDropshippingAPI {
    */
   async searchProducts(keyword, pageNo = 1, pageSize = 50) {
     try {
-      const response = await fetch('/api/cj/products/search', {
+      return await this.request('/api/cj/products/search', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           keyword,
           pageNo,
           pageSize
-        })
+        }
       });
-
-      if (!response.ok) {
-        throw new Error('Product search failed');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ search error:', error);
       throw error;
@@ -46,16 +85,9 @@ class CJDropshippingAPI {
    */
   async getProductDetails(productId) {
     try {
-      const response = await fetch(`/api/cj/products/${productId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/products/${productId}`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch product details');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ get product error:', error);
       throw error;
@@ -68,16 +100,9 @@ class CJDropshippingAPI {
    */
   async getProductVariants(productId) {
     try {
-      const response = await fetch(`/api/cj/products/${productId}/variants`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/products/${productId}/variants`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch variants');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ get variants error:', error);
       throw error;
@@ -90,16 +115,9 @@ class CJDropshippingAPI {
    */
   async getProductImages(productId) {
     try {
-      const response = await fetch(`/api/cj/products/${productId}/images`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/products/${productId}/images`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch images');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ get images error:', error);
       throw error;
@@ -114,16 +132,9 @@ class CJDropshippingAPI {
    */
   async checkStock(productId) {
     try {
-      const response = await fetch(`/api/cj/products/${productId}/stock`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/products/${productId}/stock`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to check stock');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ check stock error:', error);
       throw error;
@@ -135,17 +146,10 @@ class CJDropshippingAPI {
    */
   async syncInventory(productIds) {
     try {
-      const response = await fetch('/api/cj/inventory/sync', {
+      return await this.request('/api/cj/inventory/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productIds })
+        body: { productIds }
       });
-
-      if (!response.ok) {
-        throw new Error('Inventory sync failed');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ inventory sync error:', error);
       throw error;
@@ -160,17 +164,10 @@ class CJDropshippingAPI {
    */
   async calculateShippingRate(shippingInfo) {
     try {
-      const response = await fetch('/api/cj/shipping/calculate', {
+      return await this.request('/api/cj/shipping/calculate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(shippingInfo)
+        body: shippingInfo
       });
-
-      if (!response.ok) {
-        throw new Error('Shipping calculation failed');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ shipping calculation error:', error);
       throw error;
@@ -183,16 +180,9 @@ class CJDropshippingAPI {
    */
   async getShippingMethods(country) {
     try {
-      const response = await fetch(`/api/cj/shipping/methods?country=${country}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/shipping/methods?country=${country}`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch shipping methods');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ get shipping methods error:', error);
       throw error;
@@ -207,17 +197,10 @@ class CJDropshippingAPI {
    */
   async createOrder(orderData) {
     try {
-      const response = await fetch('/api/cj/orders/create', {
+      return await this.request('/api/cj/orders/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        body: orderData
       });
-
-      if (!response.ok) {
-        throw new Error('Order creation failed');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ order creation error:', error);
       throw error;
@@ -230,16 +213,9 @@ class CJDropshippingAPI {
    */
   async getOrderDetails(cjOrderId) {
     try {
-      const response = await fetch(`/api/cj/orders/${cjOrderId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/orders/${cjOrderId}`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch order details');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ get order error:', error);
       throw error;
@@ -252,16 +228,9 @@ class CJDropshippingAPI {
    */
   async getOrderStatus(cjOrderId) {
     try {
-      const response = await fetch(`/api/cj/orders/${cjOrderId}/status`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/orders/${cjOrderId}/status`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch order status');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ get order status error:', error);
       throw error;
@@ -276,16 +245,9 @@ class CJDropshippingAPI {
    */
   async getTrackingInfo(cjOrderId) {
     try {
-      const response = await fetch(`/api/cj/orders/${cjOrderId}/tracking`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/orders/${cjOrderId}/tracking`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch tracking info');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ tracking error:', error);
       throw error;
@@ -300,16 +262,9 @@ class CJDropshippingAPI {
    */
   async getPricing(productId) {
     try {
-      const response = await fetch(`/api/cj/products/${productId}/pricing`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/products/${productId}/pricing`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch pricing');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ pricing error:', error);
       throw error;
@@ -321,17 +276,10 @@ class CJDropshippingAPI {
    */
   async getBulkPricing(productIds) {
     try {
-      const response = await fetch('/api/cj/products/pricing/bulk', {
+      return await this.request('/api/cj/products/pricing/bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productIds })
+        body: { productIds }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch bulk pricing');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ bulk pricing error:', error);
       throw error;
@@ -345,16 +293,9 @@ class CJDropshippingAPI {
    */
   async getCategories() {
     try {
-      const response = await fetch('/api/cj/categories', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request('/api/cj/categories', {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ categories error:', error);
       throw error;
@@ -366,16 +307,9 @@ class CJDropshippingAPI {
    */
   async getTrendingProducts(limit = 10) {
     try {
-      const response = await fetch(`/api/cj/products/trending?limit=${limit}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+      return await this.request(`/api/cj/products/trending?limit=${limit}`, {
+        method: 'GET'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch trending products');
-      }
-
-      return await response.json();
     } catch (error) {
       console.error('CJ trending products error:', error);
       throw error;

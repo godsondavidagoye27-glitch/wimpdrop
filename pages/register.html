@@ -121,6 +121,7 @@
     <script>
         async function handleRegisterForm(event) {
             event.preventDefault();
+            await window._supabaseReady;
             
             const email = document.querySelector('input[name="email"]').value.trim();
             const password = document.querySelector('input[name="password"]').value;
@@ -158,6 +159,9 @@
             }
         }
     </script>
+    <script src="../js/env.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/flutterwave.js"></script>
     <script src="../js/main.js"></script>
 </body>
 </html>

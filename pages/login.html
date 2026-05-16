@@ -47,19 +47,6 @@
                     <button type="submit" class="btn btn-primary btn-block btn-large">Sign In</button>
                 </form>
                 
-                <div style="text-align: center; margin: 1.5rem 0; color: #999;">
-                    Or continue with
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <button type="button" class="btn btn-secondary btn-block" onclick="handleOAuthLogin('google')">
-                        <span style="font-size: 1.25rem;">G</span> Google
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-block" onclick="handleOAuthLogin('facebook')">
-                        <span style="font-size: 1.25rem;">f</span> Facebook
-                    </button>
-                </div>
-                
                 <p style="text-align: center; margin-top: 1.5rem;">
                     Don't have an account?
                     <a href="register.html" style="font-weight: 600;">Sign up here</a>
@@ -97,7 +84,6 @@
     <script>
         async function handleLoginForm(event) {
             event.preventDefault();
-            
             const email = document.querySelector('input[name="email"]').value.trim();
             const password = document.querySelector('input[name="password"]').value;
             const btn = document.querySelector('button[type="submit"]');
@@ -106,25 +92,41 @@
             btn.disabled = true;
 
             try {
-                const { data, error } = await window._supabase.auth.signInWithPassword({
-                    email,
-                    password
-                });
+                if (window._supabaseReady) {
+                    await window._supabaseReady;
+                }
 
-                if (error) throw error;
+                let result;
+                if (typeof handleLogin === 'function') {
+                    result = await handleLogin(email, password);
+                } else if (window._supabase?.auth?.signInWithPassword) {
+                    result = await window._supabase.auth.signInWithPassword({ email, password });
+                    if (result.error) {
+                        throw result.error;
+                    }
+                } else {
+                    throw new Error('Auth service is not available.');
+                }
+
+                const success = result?.success ?? !!result?.data;
+                if (!success) {
+                    throw new Error(result?.error?.message || result?.error || 'Login failed');
+                }
 
                 showNotification('Welcome back!', 'success');
                 setTimeout(() => window.location.href = 'account.html', 800);
             } catch (error) {
-                const msg = error.message?.includes('Invalid login credentials')
-                    ? 'Wrong email or password. Try again.'
-                    : error.message || 'Login failed';
+                const msg = (error?.message || error || 'Login failed').toString();
                 showNotification(msg, 'error');
+            } finally {
                 btn.textContent = 'Sign In';
                 btn.disabled = false;
             }
         }
     </script>
+    <script src="../js/env.js"></script>
+    <script src="../js/supabase.js"></script>
+    <script src="../js/flutterwave.js"></script>
     <script src="../js/main.js"></script>
 </body>
 </html>

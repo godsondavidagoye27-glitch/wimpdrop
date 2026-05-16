@@ -74,11 +74,36 @@ class SupabaseService {
         'Authorization': `Bearer ${supabaseKey}`
       };
       this.isInitialized = true;
+      this.auth = {
+        signUp: async ({ email, password, options = {} }) => {
+          const result = await this.signUp(email, password, options.data || {});
+          if (!result.success) {
+            return { data: null, error: { message: result.error || 'Signup failed' } };
+          }
+          return { data: { user: result.user, session: result.session }, error: null };
+        },
+        signInWithPassword: async ({ email, password }) => {
+          const result = await this.signIn(email, password);
+          if (!result.success) {
+            return { data: null, error: { message: result.error || 'Login failed' } };
+          }
+          return { data: { user: result.user, session: result.session }, error: null };
+        },
+        signOut: async () => {
+          const result = await this.signOut();
+          return { error: result.success ? null : { message: result.error || 'Sign out failed' } };
+        },
+        signInWithOAuth: async ({ provider }) => {
+          return { data: null, error: { message: 'OAuth is not available in REST fallback mode' } };
+        }
+      };
       window._supabase = this;
+      window._supabase.auth = this.auth;
       console.log('✓ Supabase initialized (REST fallback)');
       resolve(this);
     });
 
+    window._supabaseReady = this._initPromise;
     return this._initPromise;
   }
 
@@ -172,13 +197,17 @@ class SupabaseService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': this.supabaseKey
+          'apikey': this.supabaseKey,
+          'Authorization': `Bearer ${this.supabaseKey}`
         },
         body: JSON.stringify({ email, password })
       });
 
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error_description || 'Login failed');
+      if (!response.ok) {
+        const message = result.error_description || result.error || result.message || 'Login failed';
+        throw new Error(message);
+      }
 
       localStorage.setItem('supabase_token', result.access_token);
       localStorage.setItem('supabase_refresh_token', result.refresh_token || '');
@@ -660,7 +689,8 @@ const supabaseService = new SupabaseService();
 
 // ── Initialize on page load ──
 document.addEventListener('DOMContentLoaded', async () => {
-  await supabaseService.init();
+  window._supabaseReady = supabaseService.init();
+  await window._supabaseReady;
   await supabaseService.restoreSession();
 });
 
