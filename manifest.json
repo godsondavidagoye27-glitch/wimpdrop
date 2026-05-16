@@ -1,0 +1,9 @@
+{
+  "name": "Wimp-Drop",
+  "short_name": "WimpDrop",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#e63a2e",
+  "description": "Wimp-Drop is a premium dropshipping store with secure payments and fast shipping.",
+}
