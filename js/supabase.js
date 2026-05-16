@@ -58,6 +58,7 @@ class SupabaseService {
       // Check if official SDK is available
       if (window.supabase && window.supabase.createClient) {
         this.client = window.supabase.createClient(supabaseUrl, supabaseKey);
+        window._supabase = this.client;
         this.isInitialized = true;
         console.log('✓ Supabase initialized successfully (SDK)');
         resolve(this.client);
@@ -73,6 +74,7 @@ class SupabaseService {
         'Authorization': `Bearer ${supabaseKey}`
       };
       this.isInitialized = true;
+      window._supabase = this;
       console.log('✓ Supabase initialized (REST fallback)');
       resolve(this);
     });

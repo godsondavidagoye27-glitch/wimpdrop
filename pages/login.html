@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Wimp-Drop</title>
     <link rel="stylesheet" href="../css/styles.css">
-    <script src="../js/env.js"></script>
-    <script src="../js/supabase.js"></script>
-    <script src="../js/flutterwave.js"></script>
-    <script src="../js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div id="notification-container"></div>
@@ -100,14 +97,34 @@
     <script>
         async function handleLoginForm(event) {
             event.preventDefault();
-            const email = document.querySelector('input[name="email"]').value;
-            const password = document.querySelector('input[name="password"]').value;
             
-            const success = await handleLogin(email, password);
-            if (success) {
-                window.location.href = 'account.html';
+            const email = document.querySelector('input[name="email"]').value.trim();
+            const password = document.querySelector('input[name="password"]').value;
+            const btn = document.querySelector('button[type="submit"]');
+
+            btn.textContent = 'Signing in...';
+            btn.disabled = true;
+
+            try {
+                const { data, error } = await window._supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) throw error;
+
+                showNotification('Welcome back!', 'success');
+                setTimeout(() => window.location.href = 'account.html', 800);
+            } catch (error) {
+                const msg = error.message?.includes('Invalid login credentials')
+                    ? 'Wrong email or password. Try again.'
+                    : error.message || 'Login failed';
+                showNotification(msg, 'error');
+                btn.textContent = 'Sign In';
+                btn.disabled = false;
             }
         }
     </script>
+    <script src="../js/main.js"></script>
 </body>
 </html>
